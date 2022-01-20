@@ -1,0 +1,77 @@
+---
+title: "NBA Salary Inequality Over Time"
+author: "Jack Meullenet"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ggplot2)
+library(reldist)
+library(lawstat)
+library(DescTools)
+library(dplyr)
+library(readxl)
+```
+Getting Gini coefficient for every season:
+
+```{r}
+newsals <- read_excel("~/funstuff/nba_ontheside/newsals.xlsx")
+newsals$season_start = as.factor(newsals$season_start)
+
+sals2 = newsals %>%
+  group_by(season_start) %>%
+  summarise(gini = Gini(salary, n = n()))
+```
+
+Plotting these over time:
+
+```{r}
+gini_over_time2 = ggplot(data = sals2, aes(y = gini, x = season_start, group = 1)) + geom_line() +
+  geom_hline(yintercept = .63, linetype = "dashed", col = "red") +
+  annotate("text", x = "2012", y = .63, label = "South Africa", vjust = -0.3) +
+  geom_hline(yintercept = .48, linetype = "dashed", col = "blue") +
+  annotate("text", x = "1992", y = .48, label = "United States", vjust = -0.3) +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90, vjust = 0.5)) +
+  labs(x = "Season Start", y = "Gini Coefficient", title = "NBA Gini Coefficient Over Time")
+  
+gini_over_time2
+```
+not too surprising - we have seen a rise in top-heavy teams with veterans taking tiny contracts to "ring chase".could prob verify this going by team, gini by team, how many players in each salary bin etc.
+
+Maybe do some summary stats like std, visualize bell curve. can add these as summary terms for sals2. Could also
+be interesting to look at talent concentration on NBA teams, revenues and how revenue sharing affected them.
+
+Overlay with a gini of all stars per team? or just layered histograms/densities
+
+```{r}
+allstars <- read_excel("~/funstuff/nba_ontheside/allstars.xlsx")
+allstars = allstars %>% select(Year, Player, Team)
+allstars$Team = as.factor(allstars$Team)
+allstars$Year = as.factor(allstars$Year)
+
+teamrollup = allstars %>%
+  group_by(Year, Team) %>%
+  summarise(n = n())
+
+ASGini = teamrollup %>%
+  group_by(Year) %>%
+  summarise(gini = Gini(n, n = n()))
+
+talent_over_time2 = ggplot(data = ASGini, aes(y = gini, x = Year, group = 1)) + geom_line() +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90, vjust = 0.5)) +
+  labs(x = "Season", y = "Gini Coefficient", title = "NBA Gini Coefficients by All-Stars per Team")
+talent_over_time2
+```
+
+talent gini not great, might need to try summing salaries by team or checking how many minimum players are on title winners?
+
+```{r}
+sals3 <- read_excel("~/funstuff/nba_ontheside/sals_w_teams.xlsx")
+sals3$player = as.factor(sals3$player)
+```
